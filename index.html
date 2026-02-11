@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>마일리지 관리자</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; max-width: 900px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+    input, button { padding: 10px; font-size: 14px; }
+    input { min-width: 220px; }
+    button { cursor: pointer; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin: 14px 0; }
+    .muted { color: #666; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; font-size: 14px; }
+    th { background: #fafafa; }
+    .err { color: #c00; }
+    .ok { color: #0a7; }
+  </style>
+</head>
+<body>
+  <h2>마일리지 관리자</h2>
+  <div class="muted">관리자만 로그인해서 사용 가능</div>
+
+  <div class="card" id="loginCard">
+    <h3>로그인</h3>
+    <div class="row">
+      <input id="email" placeholder="이메일" />
+      <input id="password" type="password" placeholder="비밀번호" />
+      <button id="btnLogin">로그인</button>
+      <button id="btnLogout" style="display:none;">로그아웃</button>
+    </div>
+    <div id="authMsg" class="muted"></div>
+  </div>
+
+  <div class="card" id="mainCard" style="display:none;">
+    <h3>유저 조회/생성</h3>
+    <div class="row">
+      <input id="nickname" placeholder="닉네임" />
+      <button id="btnFind">조회</button>
+      <button id="btnCreate">유저 생성</button>
+    </div>
+
+    <div id="userBox" class="muted">유저를 조회해줘</div>
+
+    <hr style="border:none;border-top:1px solid #eee;margin:16px 0;"/>
+
+    <h3>마일리지 추가/차감</h3>
+    <div class="row">
+      <input id="delta" type="number" placeholder="변경값 (예: 10 / -10)" />
+      <input id="reason" placeholder="사유 (예: 출석, 벌칙, 구매)" />
+      <button id="btnApply">적용</button>
+    </div>
+    <div id="applyMsg" class="muted"></div>
+
+    <hr style="border:none;border-top:1px solid #eee;margin:16px 0;"/>
+
+    <h3>최근 로그</h3>
+    <div id="logsBox" class="muted">유저 조회 후 로그가 보여</div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // ✅ 너 프로젝트 값 이미 적용됨
+    const SUPABASE_URL = "https://wwbwddlgffujifcylwqa.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_7CxSsK89t2ycIbQg5xT-yw__kAOzLMG";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const $ = (id) => document.getElementById(id);
+    const authMsg = $("authMsg");
+    const applyMsg = $("applyMsg");
+    const userBox = $("userBox");
+    const logsBox = $("logsBox");
+
+    let currentUser = null; // 조회된 users row
+
+    function setMsg(el, text, type="muted") {
+      el.className = type;
+      el.textContent = text;
+    }
+
+    async function refreshAuthUI() {
+      const { data: { session } } = await supabase.auth.getSession();
+      const loggedIn = !!session;
+
+      $("btnLogin").style.display = loggedIn ? "none" : "";
+      $("btnLogout").style.display = loggedIn ? "" : "none";
+      $("mainCard").style.display = loggedIn ? "" : "none";
+
+      if (loggedIn) setMsg(authMsg, "로그인 됨", "ok");
+      else setMsg(authMsg, "로그인 필요", "muted");
+    }
+
+    $("btnLogin").onclick = async () => {
+      setMsg(authMsg, "로그인 중...", "muted");
+      const email = $("email").value.trim();
+      const password = $("password").value;
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return setMsg(authMsg, error.message, "err");
+      await refreshAuthUI();
+    };
+
+    $("btnLogout").onclick = async () => {
+      await supabase.auth.signOut();
+      currentUser = null;
+      userBox.textContent = "유저를 조회해줘";
+      logsBox.textContent = "유저 조회 후 로그가 보여";
+      await refreshAuthUI();
+    };
+
+    async function fetchUserByNickname(nickname) {
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, nickname, mileage, created_at, updated_at")
+        .eq("nickname", nickname)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    }
+
+    async function fetchLogs(userId) {
+      const { data, error } = await supabase
+        .from("mileage_logs")
+        .select("created_at, delta, reason")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      if (error) throw error;
+      return data;
+    }
+
+    function renderUser(u) {
+      if (!u) {
+        userBox.innerHTML = "<span class='err'>유저 없음</span>";
+        logsBox.textContent = "유저 조회 후 로그가 보여";
+        currentUser = null;
+        return;
+      }
+      currentUser = u;
+      userBox.innerHTML = `
+        <div><b>${u.nickname}</b></div>
+        <div class="muted">id: ${u.id}</div>
+        <div style="font-size:18px;margin-top:6px;">현재 마일리지: <b>${u.mileage}</b></div>
+      `;
+    }
+
+    function renderLogs(logs) {
+      if (!currentUser) return;
+      if (!logs || logs.length === 0) {
+        logsBox.innerHTML = "<div class='muted'>로그 없음</div>";
+        return;
+      }
+      const rows = logs.map(l => `
+        <tr>
+          <td>${new Date(l.created_at).toLocaleString()}</td>
+          <td>${l.delta}</td>
+          <td>${l.reason ?? ""}</td>
+        </tr>
+      `).join("");
+
+      logsBox.innerHTML = `
+        <table>
+          <thead><tr><th>시간</th><th>증감</th><th>사유</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    $("btnFind").onclick = async () => {
+      try {
+        setMsg(applyMsg, "", "muted");
+        const nickname = $("nickname").value.trim();
+        if (!nickname) return;
+
+        const u = await fetchUserByNickname(nickname);
+        renderUser(u);
+
+        if (u) {
+          const logs = await fetchLogs(u.id);
+          renderLogs(logs);
+        }
+      } catch (e) {
+        renderUser(null);
+        setMsg(applyMsg, e.message ?? String(e), "err");
+      }
+    };
+
+    $("btnCreate").onclick = async () => {
+      try {
+        setMsg(applyMsg, "", "muted");
+        const nickname = $("nickname").value.trim();
+        if (!nickname) return;
+
+        const existing = await fetchUserByNickname(nickname);
+        if (existing) {
+          renderUser(existing);
+          const logs = await fetchLogs(existing.id);
+          renderLogs(logs);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("users")
+          .insert({ nickname })
+          .select("id, nickname, mileage, created_at, updated_at")
+          .single();
+
+        if (error) throw error;
+        renderUser(data);
+        renderLogs([]);
+        setMsg(applyMsg, "유저 생성 완료", "ok");
+      } catch (e) {
+        setMsg(applyMsg, e.message ?? String(e), "err");
+      }
+    };
+
+    $("btnApply").onclick = async () => {
+      try {
+        if (!currentUser) return setMsg(applyMsg, "먼저 유저 조회/생성해줘", "err");
+
+        const delta = parseInt($("delta").value, 10);
+        if (!Number.isFinite(delta) || delta === 0) return setMsg(applyMsg, "변경값을 올바르게 입력해줘 (0 제외)", "err");
+
+        const reason = $("reason").value.trim() || null;
+
+        setMsg(applyMsg, "처리 중...", "muted");
+
+        const { data, error } = await supabase.rpc("apply_mileage", {
+          p_user_id: currentUser.id,
+          p_delta: delta,
+          p_reason: reason
+        });
+
+        if (error) throw error;
+
+        const newMileage = data?.[0]?.new_mileage;
+        currentUser.mileage = newMileage ?? currentUser.mileage;
+
+        renderUser(currentUser);
+        const logs = await fetchLogs(currentUser.id);
+        renderLogs(logs);
+
+        setMsg(applyMsg, `완료. 새 잔액: ${currentUser.mileage}`, "ok");
+        $("delta").value = "";
+        $("reason").value = "";
+      } catch (e) {
+        setMsg(applyMsg, e.message ?? String(e), "err");
+      }
+    };
+
+    await refreshAuthUI();
+
+    supabase.auth.onAuthStateChange(async () => {
+      await refreshAuthUI();
+    });
+  </script>
+</body>
+</html>
