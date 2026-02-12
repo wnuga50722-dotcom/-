@@ -3,269 +3,1292 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>마일리지 관리자</title>
+  <title>온다옹 마일리지</title>
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; max-width: 900px; }
-    .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
-    input, button { padding: 10px; font-size: 14px; }
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; max-width: 1100px; }
+    h1 { margin: 0 0 6px; }
+    h3 { margin: 0 0 10px; }
+    .muted { color: #666; font-size: 13px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+    input, button, select { padding: 10px; font-size: 14px; }
     input { min-width: 220px; }
     button { cursor: pointer; }
     .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin: 14px 0; }
-    .muted { color: #666; font-size: 13px; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; font-size: 14px; }
-    th { background: #fafafa; }
+    th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; font-size: 14px; vertical-align: top; }
+    th { background: #fafafa; position: sticky; top: 0; z-index: 1; }
     .err { color: #c00; }
     .ok { color: #0a7; }
+    .right { margin-left: auto; }
+    .pill { display:inline-block; padding: 3px 8px; border-radius: 999px; border:1px solid #ddd; font-size:12px; }
+    .btn-primary { border:1px solid #111; background:#111; color:#fff; border-radius:10px; }
+    .btn-ghost { border:1px solid #ddd; background:#fff; border-radius:10px; }
+    .btn-danger { border:1px solid #c00; background:#fff; color:#c00; border-radius:10px; }
+    .btn-danger-solid { border:1px solid #c00; background:#c00; color:#fff; border-radius:10px; }
+    .btn-link { border:none; background:transparent; color:#06c; padding:0; }
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    @media (max-width: 900px) {
+      .grid2 { grid-template-columns: 1fr; }
+      th { position: static; }
+      input { min-width: 160px; }
+    }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.35);
+      display:none; align-items:center; justify-content:center; padding: 16px;
+      z-index: 50;
+    }
+    .modal {
+      width: min(560px, 100%); background: #fff; border-radius: 14px; border: 1px solid #ddd;
+      padding: 14px;
+    }
+    .modal .row input { flex: 1; min-width: 0; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; padding:2px 6px; border:1px solid #ddd; border-radius:6px; background:#fafafa;}
+    .chiprow { display:flex; gap:8px; flex-wrap:wrap; margin-top: 8px; }
+    .chip { border: 1px solid #ddd; background: #fff; border-radius: 999px; padding: 8px 12px; font-size: 13px; cursor: pointer; }
+    .chip:hover { background: #fafafa; }
+
+    .toast {
+      position: fixed; right: 16px; bottom: 16px;
+      background: #111; color:#fff; padding: 12px 14px;
+      border-radius: 12px; font-size: 13px; display:none; z-index: 60;
+      max-width: min(420px, calc(100vw - 32px));
+      box-shadow: 0 10px 28px rgba(0,0,0,.18);
+      white-space: pre-line;
+    }
+
+    .selbar {
+      position: sticky; top: 10px; z-index: 4;
+      background: #fff; border: 1px solid #eee; border-radius: 12px;
+      padding: 10px 12px; margin: 10px 0;
+      display:none;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+    }
+    .selbar b { font-size: 15px; }
+    .selbar .meta { font-size: 13px; color:#666; margin-top: 2px; }
+
+    .ac-wrap { position: relative; width: 100%; flex: 1 1 0; min-width: 240px; }
+    .ac-wrap input { width: 100%; min-width: 0; }
+    #btnAdminFind { flex: 0 0 auto; white-space: nowrap; }
+
+    .ac-list {
+      position: absolute; left:0; right:0; top: calc(100% + 6px);
+      border:1px solid #ddd; background:#fff; border-radius:12px;
+      overflow:hidden; box-shadow: 0 8px 22px rgba(0,0,0,.08);
+      display:none; max-height: 260px; overflow:auto; z-index: 40;
+    }
+    .ac-item { padding: 10px 12px; cursor:pointer; border-bottom:1px solid #f2f2f2; }
+    .ac-item:hover { background:#fafafa; }
+    .ac-item .muted { font-size: 12px; }
+
+    .log-tools { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .log-tools input { min-width: 220px; }
+    .log-tools select { min-width: 140px; }
+
+    .chk { width: 18px; height: 18px; }
+
+    .reasonTitle {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #111;
+    }
+    .reasonSub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #666;
+    }
   </style>
 </head>
-<body>
-  <h2>마일리지 관리자</h2>
-  <div class="muted">관리자만 로그인해서 사용 가능</div>
 
-  <div class="card" id="loginCard">
-    <h3>로그인</h3>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <div id="viewerPage">
     <div class="row">
-      <input id="email" placeholder="이메일" />
-      <input id="password" type="password" placeholder="비밀번호" />
-      <button id="btnLogin">로그인</button>
-      <button id="btnLogout" style="display:none;">로그아웃</button>
+      <div>
+        <h1>온다옹 마일리지</h1>
+        <div class="muted">마일리지 총합 기준 순위</div>
+      </div>
+      <div class="right row" style="margin:0;">
+        <span id="authBadge" class="pill">시청자 모드</span>
+        <button id="btnEdit" class="btn-ghost">수정</button>
+        <button id="btnLogoutTop" class="btn-danger" style="display:none;">로그아웃</button>
+      </div>
     </div>
-    <div id="authMsg" class="muted"></div>
+
+    <div class="card">
+      <div class="row" style="margin-top:0;">
+        <div class="muted">기본 20위 노출 · 더보기로 추가 로드</div>
+        <button id="btnMore" class="btn-ghost right">더보기</button>
+      </div>
+
+      <div id="leaderMsg" class="muted"></div>
+
+      <div style="overflow:auto; max-height: 65vh;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:72px;">순위</th>
+              <th style="width:180px;">이름</th>
+              <th style="width:220px;">아이디</th>
+              <th style="width:140px;">마일리지 총합</th>
+              <th>기록</th>
+            </tr>
+          </thead>
+          <tbody id="leaderBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="bottomLogsCard">
+      <h3>기록</h3>
+      <div id="bottomLogs" class="muted">유저에서 <span class="kbd">기록 &gt;</span> 를 누르면 여기 아래에 노출돼</div>
+    </div>
   </div>
 
-  <div class="card" id="mainCard" style="display:none;">
-    <h3>유저 조회/생성</h3>
+  <div id="adminPage" style="display:none;">
     <div class="row">
-      <input id="nickname" placeholder="닉네임" />
-      <button id="btnFind">조회</button>
-      <button id="btnCreate">유저 생성</button>
+      <div>
+        <h1 style="margin:0 0 6px;">마일리지 관리자 페이지</h1>
+        <div class="muted">관리자만 수정/생성/삭제 가능</div>
+      </div>
+      <div class="right row" style="margin:0;">
+        <button id="btnBack" class="btn-ghost">← 순위로</button>
+        <button id="btnLogoutAdmin" class="btn-danger">로그아웃</button>
+      </div>
     </div>
 
-    <div id="userBox" class="muted">유저를 조회해줘</div>
-
-    <hr style="border:none;border-top:1px solid #eee;margin:16px 0;"/>
-
-    <h3>마일리지 추가/차감</h3>
-    <div class="row">
-      <input id="delta" type="number" placeholder="변경값 (예: 10 / -10)" />
-      <input id="reason" placeholder="사유 (예: 출석, 벌칙, 구매)" />
-      <button id="btnApply">적용</button>
+    <div id="selbar" class="selbar">
+      <div class="row" style="margin:0;">
+        <div>
+          <b id="selbarTitle"></b>
+          <div class="meta" id="selbarMeta"></div>
+        </div>
+        <div class="right row" style="margin:0;">
+          <button id="btnUndo" class="btn-ghost" title="직전 증감 되돌리기">Undo</button>
+          <button id="btnClearSel" class="btn-ghost">선택 해제</button>
+        </div>
+      </div>
     </div>
-    <div id="applyMsg" class="muted"></div>
 
-    <hr style="border:none;border-top:1px solid #eee;margin:16px 0;"/>
+    <div class="grid2">
+      <div class="card">
+        <h3>유저 조회</h3>
+        <div class="row">
+          <div class="ac-wrap" style="flex:1; min-width: 240px;">
+            <input id="adminFindKeyword" placeholder="닉네임 또는 아이디 (부분검색 가능)" style="width:100%;" autocomplete="off" />
+            <div id="acList" class="ac-list"></div>
+          </div>
+          <button id="btnAdminFind" class="btn-primary">조회</button>
+        </div>
+        <div id="adminUserBox" class="muted">유저를 조회해주세요</div>
+      </div>
 
-    <h3>최근 로그</h3>
-    <div id="logsBox" class="muted">유저 조회 후 로그가 보여</div>
+      <div class="card">
+        <h3>추가/차감</h3>
+        <div class="row">
+          <input id="adminDelta" type="number" placeholder="변경값 (예: 10 / -10)" />
+          <input id="adminReason" placeholder="사유 (필수)" />
+          <button id="btnReasonList" class="btn-ghost">사유 목록</button>
+          <button id="btnAdminApply" class="btn-primary">적용</button>
+        </div>
+
+        <div class="chiprow" style="margin-top:0;">
+          <button class="chip deltaPreset" data-v="1">+1</button>
+          <button class="chip deltaPreset" data-v="5">+5</button>
+          <button class="chip deltaPreset" data-v="10">+10</button>
+          <button class="chip deltaPreset" data-v="-1">-1</button>
+          <button class="chip deltaPreset" data-v="-5">-5</button>
+          <button class="chip deltaPreset" data-v="-10">-10</button>
+        </div>
+
+        <div id="reasonListBox" style="display:none;">
+          <div class="reasonTitle">자주 쓰는 사유</div>
+          <div class="chiprow" id="reasonFavRow"></div>
+
+          <div class="reasonTitle">기본 사유</div>
+          <div class="chiprow">
+            <button class="chip reasonItem" data-v="역10%">역10%</button>
+            <button class="chip reasonItem" data-v="열혈시그">열혈시그</button>
+            <button class="chip reasonItem" data-v="뽑기3등">뽑기3등</button>
+            <button class="chip reasonItem" data-v="뽑기2등">뽑기2등</button>
+            <button class="chip reasonItem" data-v="역20%">역20%</button>
+          </div>
+
+          <div class="reasonTitle">최근 사용</div>
+          <div class="chiprow" id="reasonRecentRow"></div>
+        </div>
+
+        <div id="adminApplyMsg" class="muted"></div>
+        <div class="muted" style="margin-top:6px;">※ 사유는 필수</div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>유저 생성</h3>
+        <div class="row">
+          <input id="newNickname" placeholder="닉네임" />
+          <input id="newUserCode" placeholder="아이디" />
+          <input id="newMileage" type="number" placeholder="설정 마일리지 (공란시 0)" />
+          <button id="btnCreateUser" class="btn-primary">생성</button>
+        </div>
+        <div id="adminCreateMsg" class="muted"></div>
+      </div>
+
+      <div class="card">
+        <h3>유저 삭제</h3>
+        <div class="row">
+          <input id="delKeyword" placeholder="닉네임 또는 아이디" />
+          <button id="btnDelFind" class="btn-primary">조회</button>
+        </div>
+        <div id="delUserBox" class="muted">삭제할 유저를 조회해주세요</div>
+
+        <div class="row" style="margin-top:10px;">
+          <input id="delReason" placeholder="삭제 사유 (필수)" />
+          <button id="btnDeleteUser" class="btn-danger-solid">삭제</button>
+        </div>
+        <div id="delMsg" class="muted"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin:0 0 10px;">
+        <h3 style="margin:0;">관리자 기록</h3>
+        <div class="right row" style="margin:0;">
+          <button id="btnExportCsv" class="btn-ghost">로그</button>
+          <button id="btnDeleteSelectedLogs" class="btn-danger">선택 삭제</button>
+        </div>
+      </div>
+
+      <div class="log-tools">
+        <input id="adminLogSearch" placeholder="이름/아이디 검색" />
+        <select id="adminLogRange">
+          <option value="all">전체</option>
+          <option value="today">오늘</option>
+          <option value="7d">7일</option>
+          <option value="30d">30일</option>
+        </select>
+        <button id="btnAdminLogsReload" class="btn-ghost">검색</button>
+        <span class="muted">최신순 20개 · 더보기 가능</span>
+      </div>
+
+      <div id="adminLogsMsg" class="muted"></div>
+
+      <div style="overflow:auto; max-height:45vh; margin-top:8px;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:44px;"><input id="chkAllLogs" class="chk" type="checkbox" /></th>
+              <th style="width:190px;">시간</th>
+              <th style="width:160px;">이름</th>
+              <th style="width:180px;">아이디</th>
+              <th style="width:100px;">내역</th>
+              <th>사유</th>
+              <th style="width:90px;"></th>
+            </tr>
+          </thead>
+          <tbody id="adminLogsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="btnAdminLogsMore" class="btn-ghost right">더보기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="row" style="margin-top:0;">
+        <h3 style="margin:0;">관리자 로그인</h3>
+        <button id="btnCloseModal" class="btn-ghost right">닫기</button>
+      </div>
+      <div class="row">
+        <input id="loginEmail" placeholder="이메일" />
+        <input id="loginPassword" type="password" placeholder="비밀번호" />
+      </div>
+      <div class="row">
+        <button id="btnLogin" class="btn-primary">로그인</button>
+        <div id="loginMsg" class="muted"></div>
+      </div>
+      <div class="muted">로그인 성공 시 관리자 페이지로 이동</div>
+    </div>
+  </div>
+
+  <div id="detailBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="row" style="margin-top:0;">
+        <h3 style="margin:0;">기록 상세</h3>
+        <button id="btnCloseDetail" class="btn-ghost right">닫기</button>
+      </div>
+      <div id="detailBody" class="muted"></div>
+    </div>
   </div>
 
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    // ✅ 너 프로젝트 값 이미 적용됨
     const SUPABASE_URL = "https://wwbwddlgffujifcylwqa.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_7CxSsK89t2ycIbQg5xT-yw__kAOzLMG";
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: false,   // ✅ 새로고침/재접속 시 자동로그인 안 함
-    autoRefreshToken: false, // ✅ 토큰 자동갱신 끔(선택)
-  }
-});
-
+      auth: { persistSession: true, autoRefreshToken: true }
+    });
 
     const $ = (id) => document.getElementById(id);
-    const authMsg = $("authMsg");
-    const applyMsg = $("applyMsg");
-    const userBox = $("userBox");
-    const logsBox = $("logsBox");
 
-    let currentUser = null; // 조회된 users row
+    const DELETE_CODE = "asdf1541!@";
 
-    function setMsg(el, text, type="muted") {
-      el.className = type;
+    const viewerPage = $("viewerPage");
+    const adminPage = $("adminPage");
+    const leaderBody = $("leaderBody");
+    const leaderMsg = $("leaderMsg");
+    const bottomLogs = $("bottomLogs");
+    const authBadge = $("authBadge");
+
+    const modalBackdrop = $("modalBackdrop");
+    const loginMsg = $("loginMsg");
+
+    const toast = $("toast");
+
+    const adminUserBox = $("adminUserBox");
+    const adminApplyMsg = $("adminApplyMsg");
+    const adminCreateMsg = $("adminCreateMsg");
+
+    const selbar = $("selbar");
+    const selbarTitle = $("selbarTitle");
+    const selbarMeta = $("selbarMeta");
+
+    const acList = $("acList");
+
+    const adminLogsBody = $("adminLogsBody");
+    const adminLogsMsg = $("adminLogsMsg");
+
+    const detailBackdrop = $("detailBackdrop");
+    const detailBody = $("detailBody");
+
+    let page = 0;
+    const pageSize = 20;
+
+    let selectedAdminUser = null;
+    let selectedDeleteUser = null;
+
+    let adminLogPage = 0;
+    const adminLogPageSize = 20;
+
+    let lastDeltaAction = null;
+
+    let adminLogsCache = [];
+
+    function setText(el, text, cls="muted") {
+      el.className = cls;
       el.textContent = text;
     }
 
-    async function refreshAuthUI() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const loggedIn = !!session;
-
-      $("btnLogin").style.display = loggedIn ? "none" : "";
-      $("btnLogout").style.display = loggedIn ? "" : "none";
-      $("mainCard").style.display = loggedIn ? "" : "none";
-
-      if (loggedIn) setMsg(authMsg, "로그인 됨", "ok");
-      else setMsg(authMsg, "로그인 필요", "muted");
+    function showToast(message, ms=2200) {
+      toast.textContent = message;
+      toast.style.display = "block";
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.style.display = "none", ms);
     }
 
-    $("btnLogin").onclick = async () => {
-      setMsg(authMsg, "로그인 중...", "muted");
-      const email = $("email").value.trim();
-      const password = $("password").value;
+    function alertPopup(msg) { alert(msg); }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return setMsg(authMsg, error.message, "err");
-      await refreshAuthUI();
-    };
+    function onEnter(el, handler) {
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handler();
+        }
+      });
+    }
 
-    $("btnLogout").onclick = async () => {
-      await supabase.auth.signOut();
-      currentUser = null;
-      userBox.textContent = "유저를 조회해줘";
-      logsBox.textContent = "유저 조회 후 로그가 보여";
-      await refreshAuthUI();
-    };
+    function resetLoginModal() {
+      $("loginEmail").value = "";
+      $("loginPassword").value = "";
+      setText(loginMsg, "");
+    }
 
-    async function fetchUserByNickname(nickname) {
+    function resetAdminState() {
+      selectedAdminUser = null;
+      selectedDeleteUser = null;
+      lastDeltaAction = null;
+      hideSelbar();
+
+      $("adminFindKeyword").value = "";
+      adminUserBox.textContent = "유저를 조회해주세요";
+      hideAc();
+
+      $("adminDelta").value = "";
+      $("adminReason").value = "";
+      setText(adminApplyMsg, "");
+      $("reasonListBox").style.display = "none";
+
+      $("newNickname").value = "";
+      $("newUserCode").value = "";
+      $("newMileage").value = "";
+      setText(adminCreateMsg, "");
+
+      $("delKeyword").value = "";
+      $("delReason").value = "";
+      $("delUserBox").textContent = "삭제할 유저를 조회해주세요";
+      setText($("delMsg"), "");
+
+      $("adminLogSearch").value = "";
+      $("adminLogRange").value = "all";
+      $("chkAllLogs").checked = false;
+
+      adminLogPage = 0;
+      setText(adminLogsMsg, "");
+      adminLogsBody.innerHTML = "";
+      adminLogsCache = [];
+    }
+
+    function resetAdminFindOnly() {
+      selectedAdminUser = null;
+      hideSelbar();
+      $("adminFindKeyword").value = "";
+      adminUserBox.textContent = "유저를 조회해주세요";
+      hideAc();
+    }
+
+    function openModal() { modalBackdrop.style.display = "flex"; resetLoginModal(); }
+    function closeModal() { modalBackdrop.style.display = "none"; resetLoginModal(); }
+
+    function openDetail(html) { detailBody.innerHTML = html; detailBackdrop.style.display = "flex"; }
+    function closeDetail() { detailBackdrop.style.display = "none"; detailBody.innerHTML = ""; }
+
+    function showViewer() {
+      resetAdminState();
+      viewerPage.style.display = "";
+      adminPage.style.display = "none";
+      $("btnLogoutTop").style.display = "none";
+      authBadge.textContent = "시청자 모드";
+    }
+
+    function showAdmin() {
+      viewerPage.style.display = "none";
+      adminPage.style.display = "";
+      $("btnLogoutTop").style.display = "";
+      authBadge.textContent = "관리자 모드";
+      renderReasonFavRecent();
+    }
+
+    function renderLeaderboard(rows, append, startIndex) {
+      if (!append) leaderBody.innerHTML = "";
+      if (!rows || rows.length === 0) {
+        if (!append) leaderBody.innerHTML = `<tr><td colspan="5" class="muted">데이터 없음</td></tr>`;
+        return;
+      }
+
+      const html = rows.map((u, i) => {
+        const rank = startIndex + i + 1;
+        const name = u.nickname ?? "";
+        const code = u.user_code ?? "";
+        const mileage = u.mileage ?? 0;
+
+        return `
+          <tr>
+            <td><b>${rank}</b></td>
+            <td>${escapeHtml(name)}</td>
+            <td>${escapeHtml(code)}</td>
+            <td><b>${mileage}</b></td>
+            <td>
+              <button class="btn-link" data-action="logs" data-userid="${u.id}" data-name="${escapeAttr(name)}">기록 &gt;</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      leaderBody.insertAdjacentHTML("beforeend", html);
+    }
+
+    async function loadLeaderboard(append=false) {
+      try {
+        setText(leaderMsg, "불러오는 중...");
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        const { data, error } = await supabase
+          .from("users")
+          .select("id, nickname, user_code, mileage, created_at")
+          .order("mileage", { ascending: false })
+          .order("created_at", { ascending: true })
+          .range(from, to);
+
+        if (error) throw error;
+
+        renderLeaderboard(data, append, from);
+        setText(leaderMsg, "");
+      } catch (e) {
+        setText(leaderMsg, e.message ?? String(e), "err");
+      }
+    }
+
+    async function showLogsAtBottom(userId, nickname) {
+      try {
+        bottomLogs.innerHTML = "<div class='muted'>불러오는 중...</div>";
+
+        const { data, error } = await supabase
+          .from("mileage_logs")
+          .select("id, created_at, delta, reason")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          bottomLogs.innerHTML = `<div class="muted"><b>${escapeHtml(nickname)}</b> · 기록 없음</div>`;
+          $("bottomLogsCard").scrollIntoView({ behavior: "smooth" });
+          return;
+        }
+
+        const rows = data.map(l => `
+          <tr>
+            <td>${new Date(l.created_at).toLocaleString()}</td>
+            <td>${l.delta}</td>
+            <td>${escapeHtml(l.reason ?? "")}</td>
+          </tr>
+        `).join("");
+
+        bottomLogs.innerHTML = `
+          <div style="margin-bottom:8px;"><b>${escapeHtml(nickname)}</b> · 최근 기록</div>
+          <div style="overflow:auto; max-height: 45vh;">
+            <table>
+              <thead><tr><th style="width:200px;">시간</th><th style="width:80px;">증감</th><th>사유</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        `;
+        $("bottomLogsCard").scrollIntoView({ behavior: "smooth" });
+      } catch (e) {
+        bottomLogs.innerHTML = `<div class="err">${escapeHtml(e.message ?? String(e))}</div>`;
+      }
+    }
+
+    async function ensureAdminSession() {
+      const { data, error } = await supabase.rpc("is_admin");
+      if (error) throw error;
+      return !!data;
+    }
+
+    async function adminFindUserExact(keyword) {
+      const k = keyword.trim();
       const { data, error } = await supabase
         .from("users")
-        .select("id, nickname, mileage, created_at, updated_at")
-        .eq("nickname", nickname)
+        .select("id, nickname, user_code, mileage, created_at, updated_at")
+        .or(`nickname.eq.${k},user_code.eq.${k}`)
         .maybeSingle();
 
       if (error) throw error;
       return data;
     }
 
-    async function fetchLogs(userId) {
-      const { data, error } = await supabase
-        .from("mileage_logs")
-        .select("created_at, delta, reason")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(30);
+    let acTimer = null;
+    async function adminAutocomplete(keyword) {
+      const q = keyword.trim();
+      if (!q || q.length < 1) return [];
 
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, nickname, user_code, mileage, created_at")
+        .or(`nickname.ilike.%${q}%,user_code.ilike.%${q}%`)
+        .order("mileage", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      return data ?? [];
+    }
+
+    function showAc(items) {
+      if (!items || items.length === 0) return hideAc();
+      acList.innerHTML = items.map(u => `
+        <div class="ac-item" data-id="${u.id}">
+          <div><b>${escapeHtml(u.nickname ?? "")}</b> <span class="muted">(${escapeHtml(u.user_code ?? "")})</span></div>
+          <div class="muted">마일리지: ${u.mileage ?? 0}</div>
+        </div>
+      `).join("");
+      acList.style.display = "block";
+    }
+    function hideAc() {
+      acList.style.display = "none";
+      acList.innerHTML = "";
+    }
+
+    function renderAdminUser(u) {
+      if (!u) {
+        adminUserBox.innerHTML = "<span class='err'>유저 없음</span>";
+        selectedAdminUser = null;
+        hideSelbar();
+        return;
+      }
+      selectedAdminUser = u;
+
+      adminUserBox.innerHTML = `
+        <div><b>${escapeHtml(u.nickname)}</b> (${escapeHtml(u.user_code ?? "")})</div>
+        <div class="muted">현재 마일리지: <b>${u.mileage}</b></div>
+      `;
+
+      showSelbar(u);
+    }
+
+    function showSelbar(u) {
+      selbar.style.display = "block";
+      selbarTitle.textContent = `${u.nickname} (${u.user_code ?? ""})`;
+      selbarMeta.innerHTML = `현재 마일리지: <b>${u.mileage}</b>`;
+    }
+    function hideSelbar() {
+      selbar.style.display = "none";
+      selbarTitle.textContent = "";
+      selbarMeta.textContent = "";
+    }
+
+    async function adminApplyMileage(delta, reason) {
+      if (!selectedAdminUser) throw new Error("먼저 유저 조회해주세요");
+
+      const ok = confirm(
+        `아래대로 적용할까?\n\n` +
+        `유저: ${selectedAdminUser.nickname} (${selectedAdminUser.user_code ?? ""})\n` +
+        `내역: ${delta}\n` +
+        `사유: ${reason}`
+      );
+      if (!ok) return { cancelled: true };
+
+      const { data, error } = await supabase.rpc("apply_mileage", {
+        p_user_id: selectedAdminUser.id,
+        p_delta: delta,
+        p_reason: reason
+      });
+      if (error) throw error;
+
+      const newMileage = data?.[0]?.new_mileage;
+      selectedAdminUser.mileage = newMileage ?? selectedAdminUser.mileage;
+      renderAdminUser(selectedAdminUser);
+
+      lastDeltaAction = { user_id: selectedAdminUser.id, delta, reason };
+
+      return { cancelled: false };
+    }
+
+    async function adminCreateUser(nickname, userCode, initialMileage) {
+      const try3 = await supabase.rpc("admin_create_user", {
+        p_nickname: nickname,
+        p_user_code: userCode,
+        p_initial_mileage: initialMileage
+      });
+      if (!try3.error) return { created: try3.data, appliedInitial: false };
+
+      const try2 = await supabase.rpc("admin_create_user", {
+        p_nickname: nickname,
+        p_user_code: userCode
+      });
+      if (try2.error) throw try2.error;
+
+      if (initialMileage !== 0) {
+        await supabase.rpc("apply_mileage", {
+          p_user_id: try2.data.id,
+          p_delta: initialMileage,
+          p_reason: "초기지급"
+        });
+        return { created: try2.data, appliedInitial: true };
+      }
+      return { created: try2.data, appliedInitial: false };
+    }
+
+    async function adminDeleteUser(userId, reason) {
+      const { data, error } = await supabase.rpc("admin_delete_user", {
+        p_user_id: userId,
+        p_reason: reason
+      });
       if (error) throw error;
       return data;
     }
 
-    function renderUser(u) {
-      if (!u) {
-        userBox.innerHTML = "<span class='err'>유저 없음</span>";
-        logsBox.textContent = "유저 조회 후 로그가 보여";
-        currentUser = null;
-        return;
+    function buildRangeTimeMin(range) {
+      const now = new Date();
+      if (range === "today") {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return d.toISOString();
       }
-      currentUser = u;
-      userBox.innerHTML = `
-        <div><b>${u.nickname}</b></div>
-        <div class="muted">id: ${u.id}</div>
-        <div style="font-size:18px;margin-top:6px;">현재 마일리지: <b>${u.mileage}</b></div>
-      `;
+      if (range === "7d") {
+        const d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return d.toISOString();
+      }
+      if (range === "30d") {
+        const d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return d.toISOString();
+      }
+      return null;
     }
 
-    function renderLogs(logs) {
-      if (!currentUser) return;
-      if (!logs || logs.length === 0) {
-        logsBox.innerHTML = "<div class='muted'>로그 없음</div>";
-        return;
-      }
-      const rows = logs.map(l => `
-        <tr>
-          <td>${new Date(l.created_at).toLocaleString()}</td>
-          <td>${l.delta}</td>
-          <td>${l.reason ?? ""}</td>
-        </tr>
-      `).join("");
-
-      logsBox.innerHTML = `
-        <table>
-          <thead><tr><th>시간</th><th>증감</th><th>사유</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
-    }
-
-    $("btnFind").onclick = async () => {
+    async function loadAdminLogs(append=false) {
       try {
-        setMsg(applyMsg, "", "muted");
-        const nickname = $("nickname").value.trim();
-        if (!nickname) return;
+        setText(adminLogsMsg, "불러오는 중...");
+        const from = adminLogPage * adminLogPageSize;
+        const to = from + adminLogPageSize - 1;
 
-        const u = await fetchUserByNickname(nickname);
-        renderUser(u);
+        const q = $("adminLogSearch").value.trim();
+        const range = $("adminLogRange").value;
+        const timeMin = buildRangeTimeMin(range);
 
-        if (u) {
-          const logs = await fetchLogs(u.id);
-          renderLogs(logs);
+        let query = supabase
+          .from("admin_logs")
+          .select("id, created_at, nickname, user_code, delta, reason, mileage_log_id, user_id");
+
+        if (q) query = query.or(`nickname.ilike.%${q}%,user_code.ilike.%${q}%`);
+        if (timeMin) query = query.gte("created_at", timeMin);
+
+        const { data, error } = await query
+          .order("created_at", { ascending: false })
+          .range(from, to);
+
+        if (error) throw error;
+
+        if (!append) {
+          adminLogsBody.innerHTML = "";
+          adminLogsCache = [];
+          $("chkAllLogs").checked = false;
         }
-      } catch (e) {
-        renderUser(null);
-        setMsg(applyMsg, e.message ?? String(e), "err");
-      }
-    };
 
-    $("btnCreate").onclick = async () => {
-      try {
-        setMsg(applyMsg, "", "muted");
-        const nickname = $("nickname").value.trim();
-        if (!nickname) return;
-
-        const existing = await fetchUserByNickname(nickname);
-        if (existing) {
-          renderUser(existing);
-          const logs = await fetchLogs(existing.id);
-          renderLogs(logs);
+        if (!data || data.length === 0) {
+          if (!append) adminLogsBody.innerHTML = `<tr><td colspan="7" class="muted">기록 없음</td></tr>`;
+          setText(adminLogsMsg, "");
           return;
         }
 
+        adminLogsCache = adminLogsCache.concat(data);
+
+        const rows = data.map(l => `
+          <tr data-logid="${l.id}">
+            <td><input class="chk logChk" type="checkbox" data-id="${l.id}" /></td>
+            <td class="logCell" data-id="${l.id}">${new Date(l.created_at).toLocaleString()}</td>
+            <td class="logCell" data-id="${l.id}">${escapeHtml(l.nickname ?? "")}</td>
+            <td class="logCell" data-id="${l.id}">${escapeHtml(l.user_code ?? "")}</td>
+            <td class="logCell" data-id="${l.id}">${(l.delta ?? "")}</td>
+            <td class="logCell" data-id="${l.id}">${escapeHtml(l.reason ?? "")}</td>
+            <td><button class="btn-danger btnDelAdminLog" data-id="${l.id}">삭제</button></td>
+          </tr>
+        `).join("");
+
+        adminLogsBody.insertAdjacentHTML("beforeend", rows);
+        setText(adminLogsMsg, "");
+      } catch (e) {
+        setText(adminLogsMsg, e.message ?? String(e), "err");
+      }
+    }
+
+    async function deleteAdminLogs(ids) {
+      const code = prompt("코드가 필요합니다");
+      if (code === null) return { cancelled: true };
+      if (code !== DELETE_CODE) {
+        alertPopup("코드가 틀렸습니다.");
+        return { cancelled: true };
+      }
+
+      const ok = confirm("삭제할까?\n(시청자 기록(mileage_logs)도 같이 삭제됨)");
+      if (!ok) return { cancelled: true };
+
+      setText(adminLogsMsg, "삭제 중...");
+
+      for (const id of ids) {
+        const { error } = await supabase.rpc("admin_delete_admin_log", { p_admin_log_id: id });
+        if (error) throw error;
+      }
+
+      setText(adminLogsMsg, "삭제 완료", "ok");
+      showToast("삭제 완료");
+
+      return { cancelled: false };
+    }
+
+    const LS_FAV = "od_mileage_reason_fav";
+    const LS_RECENT = "od_mileage_reason_recent";
+
+    function getFavReasons() {
+      try { return JSON.parse(localStorage.getItem(LS_FAV) || "[]"); } catch { return []; }
+    }
+    function setFavReasons(arr) {
+      localStorage.setItem(LS_FAV, JSON.stringify(arr.slice(0, 10)));
+    }
+    function getRecentReasons() {
+      try { return JSON.parse(localStorage.getItem(LS_RECENT) || "[]"); } catch { return []; }
+    }
+    function pushRecentReason(reason) {
+      const r = reason.trim();
+      if (!r) return;
+      let arr = getRecentReasons().filter(x => x !== r);
+      arr.unshift(r);
+      arr = arr.slice(0, 8);
+      localStorage.setItem(LS_RECENT, JSON.stringify(arr));
+    }
+
+    function renderReasonFavRecent() {
+      const favRow = $("reasonFavRow");
+      const recentRow = $("reasonRecentRow");
+      const fav = getFavReasons();
+      const recent = getRecentReasons();
+
+      favRow.innerHTML = fav.length
+        ? fav.map(v => `<button class="chip reasonItem" data-v="${escapeAttr(v)}">${escapeHtml(v)}</button>`).join("")
+        : `<span class="reasonSub">없음 (사유를 길게 눌러 즐겨찾기)</span>`;
+
+      recentRow.innerHTML = recent.length
+        ? recent.map(v => `<button class="chip reasonItem" data-v="${escapeAttr(v)}">${escapeHtml(v)}</button>`).join("")
+        : `<span class="reasonSub">없음</span>`;
+    }
+
+    function toggleFavReason(reason) {
+      const r = reason.trim();
+      if (!r) return;
+      let fav = getFavReasons();
+      if (fav.includes(r)) fav = fav.filter(x => x !== r);
+      else fav.unshift(r);
+      setFavReasons(fav);
+      renderReasonFavRecent();
+      showToast(fav.includes(r) ? "즐겨찾기 추가" : "즐겨찾기 해제");
+    }
+
+    $("btnMore").onclick = async () => { page += 1; await loadLeaderboard(true); };
+
+    $("btnEdit").onclick = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return openModal();
+
+        const ok = await ensureAdminSession();
+        if (!ok) return openModal();
+
+        resetAdminState();
+        showAdmin();
+
+        adminLogPage = 0;
+        await loadAdminLogs(false);
+        showToast("관리자 모드");
+      } catch {
+        openModal();
+      }
+    };
+
+    $("btnCloseModal").onclick = () => closeModal();
+
+    $("btnLogin").onclick = async () => {
+      try {
+        setText(loginMsg, "로그인 중...");
+        const email = $("loginEmail").value.trim();
+        const password = $("loginPassword").value;
+
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+
+        const ok = await ensureAdminSession();
+        if (!ok) {
+          await supabase.auth.signOut();
+          throw new Error("관리자 계정이 아님");
+        }
+
+        closeModal();
+        resetAdminState();
+        showAdmin();
+
+        adminLogPage = 0;
+        await loadAdminLogs(false);
+
+        showToast("로그인 완료");
+      } catch (e) {
+        setText(loginMsg, e.message ?? String(e), "err");
+      }
+    };
+
+    $("btnLogoutTop").onclick = async () => { await supabase.auth.signOut(); showViewer(); showToast("로그아웃"); };
+    $("btnLogoutAdmin").onclick = async () => { await supabase.auth.signOut(); showViewer(); showToast("로그아웃"); };
+    $("btnBack").onclick = () => { showViewer(); };
+
+    leaderBody.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-action='logs']");
+      if (!btn) return;
+      const userId = btn.getAttribute("data-userid");
+      const name = btn.getAttribute("data-name") || "";
+      await showLogsAtBottom(userId, name);
+    });
+
+    $("btnReasonList").onclick = () => {
+      const box = $("reasonListBox");
+      const isHidden = (box.style.display === "none" || box.style.display === "");
+      box.style.display = isHidden ? "" : "none";
+      if (isHidden) renderReasonFavRecent();
+    };
+
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest(".reasonItem");
+      if (!btn) return;
+      const v = btn.getAttribute("data-v");
+      $("adminReason").value = v;
+      $("adminReason").focus();
+    });
+
+    let pressTimer = null;
+    document.addEventListener("mousedown", (e) => {
+      const btn = e.target.closest(".reasonItem");
+      if (!btn) return;
+      pressTimer = setTimeout(() => {
+        const v = btn.getAttribute("data-v");
+        toggleFavReason(v);
+      }, 600);
+    });
+    document.addEventListener("mouseup", () => { clearTimeout(pressTimer); });
+
+    document.addEventListener("click", (e) => {
+      const p = e.target.closest(".deltaPreset");
+      if (!p) return;
+      $("adminDelta").value = p.getAttribute("data-v");
+      $("adminDelta").focus();
+    });
+
+    $("btnClearSel").onclick = () => {
+      resetAdminFindOnly();
+      showToast("선택 해제");
+    };
+
+    $("btnUndo").onclick = async () => {
+      try {
+        if (!lastDeltaAction) return showToast("되돌릴 내역 없음");
+        const ok = confirm("직전 증감을 되돌릴까?");
+        if (!ok) return;
+
+        setText(adminApplyMsg, "Undo 처리 중...");
+        const undoDelta = -lastDeltaAction.delta;
+        const undoReason = `Undo: ${lastDeltaAction.reason}`;
+
+        const { error } = await supabase.rpc("apply_mileage", {
+          p_user_id: lastDeltaAction.user_id,
+          p_delta: undoDelta,
+          p_reason: undoReason
+        });
+        if (error) throw error;
+
+        lastDeltaAction = null;
+        setText(adminApplyMsg, "Undo 완료", "ok");
+        showToast("Undo 완료");
+
+        resetAdminFindOnly();
+        page = 0; await loadLeaderboard(false);
+        adminLogPage = 0; await loadAdminLogs(false);
+      } catch (e) {
+        setText(adminApplyMsg, e.message ?? String(e), "err");
+      }
+    };
+
+    $("adminFindKeyword").addEventListener("input", () => {
+      clearTimeout(acTimer);
+      const v = $("adminFindKeyword").value;
+      if (!v.trim()) return hideAc();
+
+      acTimer = setTimeout(async () => {
+        try {
+          const items = await adminAutocomplete(v);
+          showAc(items);
+        } catch {
+          hideAc();
+        }
+      }, 180);
+    });
+
+    acList.addEventListener("click", async (e) => {
+      const item = e.target.closest(".ac-item");
+      if (!item) return;
+      const userId = item.getAttribute("data-id");
+      hideAc();
+
+      try {
         const { data, error } = await supabase
           .from("users")
-          .insert({ nickname })
-          .select("id, nickname, mileage, created_at, updated_at")
+          .select("id, nickname, user_code, mileage, created_at, updated_at")
+          .eq("id", userId)
           .single();
-
-        if (error) throw error;
-        renderUser(data);
-        renderLogs([]);
-        setMsg(applyMsg, "유저 생성 완료", "ok");
-      } catch (e) {
-        setMsg(applyMsg, e.message ?? String(e), "err");
-      }
-    };
-
-    $("btnApply").onclick = async () => {
-      try {
-        if (!currentUser) return setMsg(applyMsg, "먼저 유저 조회/생성해줘", "err");
-
-        const delta = parseInt($("delta").value, 10);
-        if (!Number.isFinite(delta) || delta === 0) return setMsg(applyMsg, "변경값을 올바르게 입력해줘 (0 제외)", "err");
-
-        const reason = $("reason").value.trim() || null;
-
-        setMsg(applyMsg, "처리 중...", "muted");
-
-        const { data, error } = await supabase.rpc("apply_mileage", {
-          p_user_id: currentUser.id,
-          p_delta: delta,
-          p_reason: reason
-        });
-
         if (error) throw error;
 
-        const newMileage = data?.[0]?.new_mileage;
-        currentUser.mileage = newMileage ?? currentUser.mileage;
-
-        renderUser(currentUser);
-        const logs = await fetchLogs(currentUser.id);
-        renderLogs(logs);
-
-        setMsg(applyMsg, `완료. 새 잔액: ${currentUser.mileage}`, "ok");
-        $("delta").value = "";
-        $("reason").value = "";
-      } catch (e) {
-        setMsg(applyMsg, e.message ?? String(e), "err");
+        $("adminFindKeyword").value = data.user_code || data.nickname || "";
+        renderAdminUser(data);
+        showToast("유저 선택");
+      } catch (err) {
+        setText(adminApplyMsg, err.message ?? String(err), "err");
       }
-    };
-
-    await refreshAuthUI();
-
-    supabase.auth.onAuthStateChange(async () => {
-      await refreshAuthUI();
     });
+
+    document.addEventListener("click", (e) => {
+      if (e.target.closest(".ac-wrap")) return;
+      hideAc();
+    });
+
+    $("btnAdminFind").onclick = async () => {
+      try {
+        setText(adminApplyMsg, "");
+        const keyword = $("adminFindKeyword").value.trim();
+        if (!keyword) return;
+
+        const u = await adminFindUserExact(keyword);
+        renderAdminUser(u);
+        if (u) showToast("조회 성공");
+      } catch (e) {
+        setText(adminApplyMsg, e.message ?? String(e), "err");
+      }
+    };
+
+    $("btnAdminApply").onclick = async () => {
+      try {
+        setText(adminApplyMsg, "처리 중...");
+        const delta = parseInt($("adminDelta").value, 10);
+        const reason = $("adminReason").value.trim();
+
+        if (!Number.isFinite(delta) || delta === 0) throw new Error("변경값을 올바르게 입력해주세요 (0 제외)");
+        if (!reason) throw new Error("사유를 입력해주세요");
+
+        const res = await adminApplyMileage(delta, reason);
+        if (res.cancelled) { setText(adminApplyMsg, "취소됨"); return; }
+
+        pushRecentReason(reason);
+        renderReasonFavRecent();
+
+        setText(adminApplyMsg, "완료", "ok");
+        showToast("적용 완료");
+
+        $("adminDelta").value = "";
+        $("adminReason").value = "";
+        $("reasonListBox").style.display = "none";
+
+        resetAdminFindOnly();
+
+        page = 0; await loadLeaderboard(false);
+        adminLogPage = 0; await loadAdminLogs(false);
+      } catch (e) {
+        setText(adminApplyMsg, e.message ?? String(e), "err");
+      }
+    };
+
+    $("btnCreateUser").onclick = async () => {
+      try {
+        setText(adminCreateMsg, "생성 중...");
+        const nickname = $("newNickname").value.trim();
+        const userCode = $("newUserCode").value.trim();
+        const mileageRaw = $("newMileage").value;
+        const initialMileage = mileageRaw === "" ? 0 : parseInt(mileageRaw, 10);
+
+        if (!nickname) throw new Error("닉네임을 입력해주세요");
+        if (!userCode) throw new Error("아이디를 입력해주세요");
+        if (!Number.isFinite(initialMileage) || initialMileage < 0) throw new Error("초기 마일리지는 0 이상 숫자만");
+
+        const ok = confirm(`유저 생성할까?\n\n닉네임: ${nickname}\n아이디: ${userCode}\n초기 마일리지: ${initialMileage}`);
+        if (!ok) { setText(adminCreateMsg, "취소됨"); return; }
+
+        const { created, appliedInitial } = await adminCreateUser(nickname, userCode, initialMileage);
+        const extra = appliedInitial ? " (초기지급 로그 1건 추가됨)" : "";
+        setText(adminCreateMsg, `생성 완료: ${created.nickname} (${created.user_code})${extra}`, "ok");
+        showToast("유저 생성 완료");
+
+        $("newNickname").value = "";
+        $("newUserCode").value = "";
+        $("newMileage").value = "";
+
+        page = 0; await loadLeaderboard(false);
+        adminLogPage = 0; await loadAdminLogs(false);
+      } catch (e) {
+        setText(adminCreateMsg, e.message ?? String(e), "err");
+      }
+    };
+
+    $("btnDelFind").onclick = async () => {
+      try {
+        setText($("delMsg"), "");
+        const k = $("delKeyword").value.trim();
+        if (!k) return;
+
+        const u = await adminFindUserExact(k);
+        selectedDeleteUser = u;
+
+        if (!u) {
+          $("delUserBox").innerHTML = "<span class='err'>유저 없음</span>";
+          return;
+        }
+
+        $("delUserBox").innerHTML = `
+          <div><b>${escapeHtml(u.nickname)}</b> (${escapeHtml(u.user_code ?? "")})</div>
+          <div class="muted">현재 마일리지: <b>${u.mileage}</b></div>
+        `;
+        showToast("삭제 대상 조회됨");
+      } catch (e) {
+        setText($("delMsg"), e.message ?? String(e), "err");
+      }
+    };
+
+    $("btnDeleteUser").onclick = async () => {
+      try {
+        if (!selectedDeleteUser) throw new Error("먼저 삭제할 유저를 조회해주세요");
+        const reason = $("delReason").value.trim();
+        if (!reason) throw new Error("삭제 사유를 입력해주세요");
+
+        const ok = confirm(
+          `삭제할까?\n\n유저: ${selectedDeleteUser.nickname} (${selectedDeleteUser.user_code ?? ""})\n사유: ${reason}`
+        );
+        if (!ok) { setText($("delMsg"), "취소됨"); return; }
+
+        setText($("delMsg"), "삭제 중...");
+        await adminDeleteUser(selectedDeleteUser.id, reason);
+
+        setText($("delMsg"), "삭제 완료", "ok");
+        showToast("유저 삭제 완료");
+
+        selectedDeleteUser = null;
+        $("delUserBox").textContent = "삭제할 유저를 조회해주세요";
+        $("delKeyword").value = "";
+        $("delReason").value = "";
+
+        page = 0; await loadLeaderboard(false);
+        adminLogPage = 0; await loadAdminLogs(false);
+      } catch (e) {
+        setText($("delMsg"), e.message ?? String(e), "err");
+      }
+    };
+
+    $("btnAdminLogsMore").onclick = async () => {
+      adminLogPage += 1;
+      await loadAdminLogs(true);
+    };
+
+    $("btnAdminLogsReload").onclick = async () => {
+      adminLogPage = 0;
+      await loadAdminLogs(false);
+      showToast("로그 갱신");
+    };
+
+    adminLogsBody.addEventListener("click", async (e) => {
+      const btnDel = e.target.closest(".btnDelAdminLog");
+      if (btnDel) {
+        const id = btnDel.getAttribute("data-id");
+        if (!id) return;
+
+        try {
+          await deleteAdminLogs([id]);
+          page = 0; await loadLeaderboard(false);
+          adminLogPage = 0; await loadAdminLogs(false);
+        } catch (err) {
+          setText(adminLogsMsg, err.message ?? String(err), "err");
+        }
+        return;
+      }
+
+      const cell = e.target.closest(".logCell");
+      if (cell) {
+        const id = cell.getAttribute("data-id");
+        const row = adminLogsCache.find(x => x.id === id);
+        if (!row) return;
+
+        const html = `
+          <div class="row"><div class="muted">시간</div><div>${new Date(row.created_at).toLocaleString()}</div></div>
+          <div class="row"><div class="muted">이름</div><div><b>${escapeHtml(row.nickname ?? "")}</b></div></div>
+          <div class="row"><div class="muted">아이디</div><div>${escapeHtml(row.user_code ?? "")}</div></div>
+          <div class="row"><div class="muted">내역</div><div>${row.delta ?? ""}</div></div>
+          <div class="row"><div class="muted">사유</div><div>${escapeHtml(row.reason ?? "")}</div></div>
+          <div class="row"><div class="muted">admin_log_id</div><div class="kbd">${escapeHtml(row.id)}</div></div>
+        `;
+        openDetail(html);
+      }
+    });
+
+    $("btnCloseDetail").onclick = () => closeDetail();
+
+    $("chkAllLogs").addEventListener("change", () => {
+      const on = $("chkAllLogs").checked;
+      adminLogsBody.querySelectorAll(".logChk").forEach(chk => chk.checked = on);
+    });
+
+    $("btnDeleteSelectedLogs").onclick = async () => {
+      try {
+        const ids = Array.from(adminLogsBody.querySelectorAll(".logChk"))
+          .filter(chk => chk.checked)
+          .map(chk => chk.getAttribute("data-id"))
+          .filter(Boolean);
+
+        if (ids.length === 0) return showToast("선택된 기록 없음");
+
+        await deleteAdminLogs(ids);
+
+        page = 0; await loadLeaderboard(false);
+        adminLogPage = 0; await loadAdminLogs(false);
+      } catch (err) {
+        setText(adminLogsMsg, err.message ?? String(err), "err");
+      }
+    };
+
+    $("btnExportCsv").onclick = () => {
+      if (!adminLogsCache.length) return showToast("내보낼 로그 없음");
+
+      const header = ["시간","이름","아이디","내역","사유","admin_log_id"];
+      const rows = adminLogsCache.map(r => [
+        new Date(r.created_at).toLocaleString(),
+        r.nickname ?? "",
+        r.user_code ?? "",
+        (r.delta ?? "").toString(),
+        r.reason ?? "",
+        r.id
+      ]);
+
+      const csv = [header, ...rows]
+        .map(cols => cols.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `admin_logs_${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("로그 다운로드");
+    };
+
+    onEnter($("loginEmail"), () => $("btnLogin").click());
+    onEnter($("loginPassword"), () => $("btnLogin").click());
+
+    onEnter($("adminFindKeyword"), () => $("btnAdminFind").click());
+    onEnter($("adminDelta"), () => $("btnAdminApply").click());
+    onEnter($("adminReason"), () => $("btnAdminApply").click());
+
+    onEnter($("newNickname"), () => $("btnCreateUser").click());
+    onEnter($("newUserCode"), () => $("btnCreateUser").click());
+    onEnter($("newMileage"), () => $("btnCreateUser").click());
+
+    onEnter($("delKeyword"), () => $("btnDelFind").click());
+    onEnter($("delReason"), () => $("btnDeleteUser").click());
+
+    onEnter($("adminLogSearch"), () => $("btnAdminLogsReload").click());
+
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeModal();
+        closeDetail();
+      }
+    });
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (m) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      }[m]));
+    }
+    function escapeAttr(s) {
+      return String(s).replace(/"/g, "&quot;");
+    }
+
+    showViewer();
+    page = 0;
+    await loadLeaderboard(false);
   </script>
 </body>
 </html>
-
